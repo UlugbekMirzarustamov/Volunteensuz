@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── A PROGRAM (scholarship, summer program, competition, etc.) ──
+model Program {
+  id                String   @id @default(cuid())
+  title             String
+  organization      String
+  category          String   // Scholarship, Summer Program, Competition, Research, Internship, Exchange
+  country           String   // where it's based or "Global" / "Online"
+  fundingType       String   // Full, Partial, Free, Paid
+  level             String   // High School, Undergraduate, Graduate, Any
+  deadline          DateTime?
+  shortDescription  String
+  fullDescription   String
+  officialLink      String
+  imageUrl          String?
+  isRemote          String   @default("In-person") // Online, In-person, Hybrid
+  applicationFee    String   @default("Free")
+  eligibleCountries String   @default("Global")
+  tags              String   @default("") // comma-separated: "STEM,leadership,arts"
+  essayPrompts      String   @default("") // JSON: [{"prompt":"...","wordLimit":300},...]
+  featured          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  savedBy           SavedProgram[]
+}
+
+// ── A USER (student) ──
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String
+  country       String?
+  level         String?  // High School, Undergraduate, Graduate
+  interests     String   @default("") // comma-separated tags
+  createdAt     DateTime @default(now())
+
+  savedPrograms SavedProgram[]
+}
+
+// ── SAVED PROGRAMS (user <-> program link, with application status) ──
+model SavedProgram {
+  id        String   @id @default(cuid())
+  userId    String
+  programId String
+  status    String   @default("Interested") // Interested, Applying, Submitted, Accepted, Rejected
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, programId])
+}
+model Essay {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("Untitled essay")
+  program   String   @default("")
+  content   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
